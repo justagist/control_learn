@@ -9,6 +9,10 @@ class State:
     def __call__(self):
         return self._state
 
+    @property
+    def dim(self):
+        return self._state.shape[0]
+
 
 if __name__ == '__main__':
     
