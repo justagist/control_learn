@@ -3,8 +3,8 @@ import cv2
 import time
 import matplotlib.pyplot as plt
 # import sys
-import controllers.lqr
-import controllers.pid
+import ctrl_lib_simple.controllers.lqr
+import ctrl_lib_simple.controllers.pid
 
 
 class Cart:
@@ -88,28 +88,29 @@ class CartPoleEnv:
         cv2.waitKey(5)
 
 
-    def control_cartpole(self, control_type = 'lqr', desired_cart_pos = 0.3, desired_pendulum_angle = 0, simulation_time = 35, **kwargs):
+    def control_cartpole(self, control_type = 'lqr', desired_cart_pos = 0.3, desired_pendulum_angle = 0, simulation_time = 35, plot = True, **kwargs):
 
 
-        def choose_ctrl(ctrl_type, Kp = -150, Kd = -20, Ki = -20, Q = np.matrix([[10,0,0,0],
+        def choose_ctrl(Kp = -150, Kd = -20, Ki = -20, Q = np.matrix([[10,0,0,0],
                                                                                  [0,1,0,0],
                                                                                  [0,0,10000,0],
                                                                                  [0,0,0,100]
                                                                                     ]),
                                                                             R = np.matrix([500])):
 
-            if ctrl_type == 'lqr':
 
-                controller = controllers.lqr.LQR()
+            if control_type == 'lqr':
+
+                controller = ctrl_lib_simple.controllers.lqr.LQR()
                 
                 K = controller.compute_gain(self.Amat_,self.Bmat_,Q,R)
                 controller.set_gain_matrix(K)
 
                 return controller
 
-            elif ctrl_type == 'pid':
+            elif control_type == 'pid':
 
-                controller = controllers.pid.PID(Kp, Kd, Ki, prev_error = self._check_angle(self.pendulum_.theta))
+                controller = ctrl_lib_simple.controllers.pid.PID(Kp, Kd, Ki, prev_error = self._check_angle(self.pendulum_.theta))
 
                 return controller
 
@@ -144,13 +145,13 @@ class CartPoleEnv:
 
         # ----- The desired state
         desired_state = np.matrix([
-                                    [desired_cart_pos],
+                                    [desired_cart_pos*self.world_size_],
                                     [0],
                                     [desired_pendulum_angle],
                                     [0]
                                     ])
 
-        controller = choose_ctrl(control_type)
+        controller = choose_ctrl(**kwargs)
 
         # ----- Initializing other variables needed for the simulation, x corresponds to states of the cart, theta to those of pendulum
         theta_dot = 0
@@ -205,7 +206,34 @@ class CartPoleEnv:
             x_tminus2 = x_tminus1
             x_tminus1 = self.cart_.x
 
+        if plot:
 
+            self.plot_graphs(times,errors,theta,force,x)
+
+
+    def plot_graphs(self, times,errors,theta,force,x):
+
+        plt.subplot(4, 1, 1)
+        plt.plot(times,errors,'-b')
+        plt.ylabel('Error')
+        plt.xlabel('Time')
+
+        plt.subplot(4, 1, 2)
+        plt.plot(times,theta,'-b')
+        plt.ylabel('Theta')
+        plt.xlabel('Time')
+
+        plt.subplot(4, 1, 3)
+        plt.plot(times,force,'-b')
+        plt.ylabel('Force')
+        plt.xlabel('Time')
+
+        plt.subplot(4, 1, 4)
+        plt.plot(times,x,'-b')
+        plt.ylabel('X')
+        plt.xlabel('Time')
+
+        plt.show()
 
 
 
