@@ -4,6 +4,7 @@ import time
 import matplotlib.pyplot as plt
 # import sys
 import controllers.lqr
+import controllers.pid
 
 
 class Cart:
@@ -40,9 +41,10 @@ class CartPoleEnv:
                         [pend_vel]
                         ]
 
-        """
+        
 
-        ###############
+        ----- Dynamics of the system, y_dot = Ay + Bu
+        """
         self.Amat_ = np.matrix(  [
                         [0,1,0,0],
                         [0,0,self.g_*self.pendulum_.ball_mass/self.cart_.mass,0],
@@ -56,7 +58,6 @@ class CartPoleEnv:
                         [0],
                         [1/(self.pendulum_.length*self.cart_.mass)]
                         ])
-
 
     def _check_angle(self,angle):
         '''
@@ -87,25 +88,45 @@ class CartPoleEnv:
         cv2.waitKey(5)
 
 
-    def control_cartpole(self, control_type = 'lqr', desired_cart_pos = 0.3, desired_pendulum_angle = 0, 
-                                                                            Q = np.matrix([ [10,0,0,0],
-                                                                                            [0,1,0,0],
-                                                                                            [0,0,10000,0],
-                                                                                            [0,0,0,100]
-                                                                                            ]),
-                                                                            R = np.matrix([500]), simulation_time = 35):
+    def control_cartpole(self, control_type = 'lqr', desired_cart_pos = 0.3, desired_pendulum_angle = 0, simulation_time = 35, **kwargs):
 
 
-        def choose_ctrl(ctrl_type):
+        def choose_ctrl(ctrl_type, Kp = -150, Kd = -20, Ki = -20, Q = np.matrix([[10,0,0,0],
+                                                                                 [0,1,0,0],
+                                                                                 [0,0,10000,0],
+                                                                                 [0,0,0,100]
+                                                                                    ]),
+                                                                            R = np.matrix([500])):
 
             if ctrl_type == 'lqr':
 
-                return controllers.lqr.LQR()
+                controller = controllers.lqr.LQR()
+                
+                K = controller.compute_gain(self.Amat_,self.Bmat_,Q,R)
+                controller.set_gain_matrix(K)
 
-            # elif ctrl_type == 'pid':
-            #     return 
+                return controller
+
+            elif ctrl_type == 'pid':
+
+                controller = controllers.pid.PID(Kp, Kd, Ki, prev_error = self._check_angle(self.pendulum_.theta))
+
+                return controller
+
             else:
                 raise Exception("Invalid Contrller Type")
+
+        def find_control_input(controller, curr_state, desired_state, error, dt):
+
+            if control_type == 'lqr':
+                return controller.find_control_input(curr_state, desired_state)
+
+            elif control_type == 'pid':
+                return controller.find_control_input(error, dt)
+
+            else:
+                raise Exception("Invalid Contrller Type")
+
 
         def apply_control(ctrl_cmd):
             '''
@@ -135,8 +156,6 @@ class CartPoleEnv:
         theta_dot = 0
         theta_tminus1 = theta_tminus2 = self.pendulum_.theta
         x_tminus1 = x_tminus2 = self.cart_.x
-        previous_error = self._check_angle(self.pendulum_.theta)
-        integral = 0
         previous_time_delta = 0
 
 
@@ -150,8 +169,9 @@ class CartPoleEnv:
         while time.time() <= end_time:      
             current_timestamp = time.time()
             time_delta = (current_timestamp - previous_timestamp)
-            error = self._check_angle(self.pendulum_.theta)
-            if previous_time_delta != 0:    # This condition is to make sure that theta_dot is not infinity in the first step
+            error = self._check_angle(self.pendulum_.theta - desired_state[2,0])
+            if previous_time_delta != 0:    # ----- This condition is to make sure that theta_dot is not infinity in the first step
+
                 theta_dot = (theta_tminus1 - theta_tminus2 ) / previous_time_delta              
                 x_dot = (x_tminus1 - x_tminus2) / previous_time_delta
 
@@ -162,9 +182,10 @@ class CartPoleEnv:
                     [np.squeeze(np.asarray(theta_dot))]
                     ])
 
-                K = controller.compute_gain(self.Amat_,self.Bmat_,Q,R)
+                
 
-                F = controller.find_control_input(curr_state, desired_state, K = K)
+                # F = controller.find_control_input(curr_state, desired_state, K = gain)
+                F = find_control_input(controller, curr_state, desired_state, error, time_delta)
 
                 apply_control(F)
                 
@@ -179,7 +200,6 @@ class CartPoleEnv:
             self._render()
             previous_time_delta = time_delta
             previous_timestamp = current_timestamp
-            previous_error = error
             theta_tminus2 = theta_tminus1
             theta_tminus1 = self.pendulum_.theta
             x_tminus2 = x_tminus1
@@ -193,7 +213,7 @@ if __name__ == '__main__':
     
     cp = CartPoleEnv()
 
-    cp.control_cartpole()
+    cp.control_cartpole(control_type = 'lqr')
 
 
 
