@@ -13,7 +13,6 @@ if __name__ == '__main__':
     parser.add_argument("--pendulum_start_angle", default = 1.0, help = "Starting orientation of pendulum")
     parser.add_argument("--g", default = 9.81, help = "Acceleration due to gravity")
 
-    parser.add_argument("--desired_cart_pos", default = 0.3, help = "Desired final position of cart")
     parser.add_argument("--desired_pendulum_angle", default = 0., help = "Desired final orientation (in rad) of pendulum (vertically up is 0)")
 
     parser.add_argument("--Kp", default = -150, type = float, help = "The proportional gain of the PID controller")
@@ -27,4 +26,4 @@ if __name__ == '__main__':
 
     env = CartPoleEnv(cart_mass = args.cart_mass, pole_length = args.pole_length, pendulum_mass = args.pendulum_mass, cart_start_pos = args.cart_start_pos, pendulum_start_angle = args.pendulum_start_angle, g = args.g)
 
-    env.control_cartpole(control_type = 'pid', desired_cart_pos = args.desired_cart_pos, desired_pendulum_angle = args.desired_pendulum_angle, Kp = args.Kp, Kd = args.Kd, Ki = args.Ki)
+    env.control_cartpole(control_type = 'pid', desired_pendulum_angle = args.desired_pendulum_angle, Kp = args.Kp, Kd = args.Kd, Ki = args.Ki, plot = bool(args.plot))
