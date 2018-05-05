@@ -23,4 +23,4 @@ if __name__ == '__main__':
 
     env = CartPoleEnv(cart_mass = args.cart_mass, pole_length = args.pole_length, pendulum_mass = args.pendulum_mass, cart_start_pos = args.cart_start_pos, pendulum_start_angle = args.pendulum_start_angle, g = args.g)
 
-    env.control_cartpole(control_type = 'lqr', desired_cart_pos = args.desired_cart_pos, desired_pendulum_angle = args.desired_pendulum_angle)
+    env.control_cartpole(control_type = 'lqr', desired_cart_pos = args.desired_cart_pos, desired_pendulum_angle = args.desired_pendulum_angle, plot = bool(args.plot))
