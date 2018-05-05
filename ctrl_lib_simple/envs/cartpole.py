@@ -69,26 +69,47 @@ class CartPoleEnv:
             previous_error = previous_error - (2 * np.pi)
         return previous_error
 
-    def _render(self):
-        # This function displays the pendulum and cart.
+    def _render(self, type_ = 'lqr'):
+        '''
+            Function to render the cart and pendulum.
+
+        '''
         length_for_display = self.pendulum_.length * 100
 
         A = np.zeros((self.world_size_,self.world_size_,3),np.uint8)
 
+        # ----- the cart and line
         cv2.line(A,(0,int(0.6 * self.world_size_)),(self.world_size_,int(0.6 * self.world_size_)),(255,255,255),2)
         cv2.rectangle(A,(int(self.cart_.x) + 25,self.cart_.y + 15),(int(self.cart_.x) - 25,self.cart_.y - 15),self.cart_.color,-1)    
 
         pendulum_x_endpoint = int(self.cart_.x - (length_for_display) * np.sin(self.pendulum_.theta))
         pendulum_y_endpoint = int(self.cart_.y - (length_for_display) * np.cos(self.pendulum_.theta))
 
+        # ----- the pendulum and bob
         cv2.line(A,(int(self.cart_.x),self.cart_.y),(pendulum_x_endpoint,pendulum_y_endpoint),self.pendulum_.color,4)
         cv2.circle(A,(pendulum_x_endpoint,pendulum_y_endpoint),6,(255,255,255),-1)
 
-        cv2.imshow('WindowName',A)
-        cv2.waitKey(5)
+        # ----- targetpoint of cart and pendulum
+        if type_ == 'lqr':
+            cv2.circle(A,(int(self.desired_state_[0,0]),int(0.6 * self.world_size_)),7,(255,0,0),-1)
+
+            pendulum_x_endpoint_target = int(self.desired_state_[0,0] - (length_for_display) * np.sin(self.desired_state_[2,0]))
+            pendulum_y_endpoint_target = int(0.6 * self.world_size_ - (length_for_display) * np.cos(self.desired_state_[2,0]))
+
+            cv2.line(A,(int(self.desired_state_[0,0]),int(0.6 * self.world_size_)),(pendulum_x_endpoint_target,pendulum_y_endpoint_target),(255,0,0),1)
+
+        elif type_ == 'pid':
+
+            pendulum_x_endpoint_target = int(self.cart_.x - (length_for_display) * np.sin(self.desired_state_[2,0]))
+            pendulum_y_endpoint_target = int(self.cart_.y - (length_for_display) * np.cos(self.desired_state_[2,0]))
+
+            cv2.line(A,(int(self.cart_.x),self.cart_.y),(pendulum_x_endpoint_target,pendulum_y_endpoint_target),(255,0,0),1)
+
+        cv2.imshow('CartPoleController',A)
+        cv2.waitKey(1)
 
 
-    def control_cartpole(self, control_type = 'lqr', desired_cart_pos = 0.3, desired_pendulum_angle = 0, simulation_time = 35, plot = True, **kwargs):
+    def control_cartpole(self, control_type = 'lqr', desired_cart_pos = 0.7, desired_pendulum_angle = 0, simulation_time = 35, plot = True, **kwargs):
 
 
         def choose_ctrl(Kp = -150, Kd = -20, Ki = -20, Q = np.matrix([[10,0,0,0],
@@ -144,7 +165,7 @@ class CartPoleEnv:
 
 
         # ----- The desired state
-        desired_state = np.matrix([
+        self.desired_state_ = np.matrix([
                                     [desired_cart_pos*self.world_size_],
                                     [0],
                                     [desired_pendulum_angle],
@@ -170,7 +191,7 @@ class CartPoleEnv:
         while time.time() <= end_time:      
             current_timestamp = time.time()
             time_delta = (current_timestamp - previous_timestamp)
-            error = self._check_angle(self.pendulum_.theta - desired_state[2,0])
+            error = self._check_angle(self.pendulum_.theta - self.desired_state_[2,0])
             if previous_time_delta != 0:    # ----- This condition is to make sure that theta_dot is not infinity in the first step
 
                 theta_dot = (theta_tminus1 - theta_tminus2 ) / previous_time_delta              
@@ -186,7 +207,7 @@ class CartPoleEnv:
                 
 
                 # F = controller.find_control_input(curr_state, desired_state, K = gain)
-                F = find_control_input(controller, curr_state, desired_state, error, time_delta)
+                F = find_control_input(controller, curr_state, self.desired_state_, error, time_delta)
 
                 apply_control(F)
                 
@@ -198,7 +219,7 @@ class CartPoleEnv:
                 theta.append(self.pendulum_.theta)
         
             # Update the variables and display stuff
-            self._render()
+            self._render(control_type)
             previous_time_delta = time_delta
             previous_timestamp = current_timestamp
             theta_tminus2 = theta_tminus1
