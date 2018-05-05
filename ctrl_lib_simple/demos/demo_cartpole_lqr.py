@@ -6,17 +6,17 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='Demo for controlling an inverted pendulum on a 1D cart using LQR')
 
-    parser.add_argument("--cart_mass", default = 5.0, help = "Mass of cart")
-    parser.add_argument("--pole_length", default = 1.0, help = "Length of pendulum")
-    parser.add_argument("--pendulum_mass", default = 1.0, help = "Mass of pendulum bob")
-    parser.add_argument("--cart_start_pos", default = 0.2, help = "Starting position of cart")
-    parser.add_argument("--pendulum_start_angle", default = 1.0, help = "Starting orientation of pendulum")
-    parser.add_argument("--g", default = 9.81, help = "Acceleration due to gravity")
+    parser.add_argument("--cart_mass", default = 5.0, type = float, help = "Mass of cart")
+    parser.add_argument("--pole_length", default = 1.0, type = float, help = "Length of pendulum")
+    parser.add_argument("--pendulum_mass", default = 1.0, type = float, help = "Mass of pendulum bob")
+    parser.add_argument("--cart_start_pos", default = 0.2, type = float, help = "Starting position of cart")
+    parser.add_argument("--pendulum_start_angle", default = 1.0, type = float, help = "Starting orientation of pendulum")
+    parser.add_argument("--g", default = 9.81, type = float, help = "Acceleration due to gravity")
 
-    parser.add_argument("--desired_cart_pos", default = 0.3, help = "Desired final position of cart")
-    parser.add_argument("--desired_pendulum_angle", default = 0., help = "Desired final orientation (in rad) of pendulum (vertically up is 0)")
+    parser.add_argument("--desired_cart_pos", default = 0.3, type = float, help = "Desired final position of cart")
+    parser.add_argument("--desired_pendulum_angle", default = 0., type = float, help = "Desired final orientation (in rad) of pendulum (vertically up is 0)")
 
-    parser.add_argument("-P","--plot", default = 0, help = "Whether or not to plot the graphs for forces, error etc.")
+    parser.add_argument("-P","--plot", default = 0, type = int, help = "Whether or not to plot the graphs for forces, error etc.")
 
 
     args = parser.parse_args()
